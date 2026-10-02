@@ -1,0 +1,57 @@
+name: Build MERWIS VS ELYAS APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Prepare Web App & Build Capacitor
+        run: |
+          mkdir www
+          if [ -f "MERWIS-VS-ELYAS.zip" ]; then
+            unzip MERWIS-VS-ELYAS.zip
+          fi
+          if [ -f "index.html" ]; then
+            cp index.html www/
+          elif [ -f "MERWIS-VS-ELYAS/index.html" ]; then
+            cp MERWIS-VS-ELYAS/index.html www/
+          fi
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "MERWIS VS ELYAS" "com.merwis.elyas" --web-dir www
+          npx cap add android
+          npx cap sync android
+
+      - name: Build Android Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MERWIS_VS_ELYAS_APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
